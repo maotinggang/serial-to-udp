@@ -11,8 +11,12 @@ export default {
   data() {
     return {
       comSelected: '',
-      netPort: 8000,
-      baudRate: 115200
+      baudRate: 115200,
+      packageTime: 100,
+      hostIp: '127.0.0.1',
+      hostPort: 8080,
+      serverIp: '127.0.0.1',
+      serverPort: 8080
     }
   },
   created() {
@@ -39,10 +43,12 @@ export default {
   },
   computed: {
     ...mapState('home', [
-      'comName',
+      'comNumber',
       'windowSize',
       'serialState',
+      'serialIsDisabled',
       'netState',
+      'netIsDisabled',
       'serialTime',
       'netTime',
       'averageDelay'
@@ -51,21 +57,32 @@ export default {
   methods: {
     ...mapActions('home', ['actionWindowSize', 'actionSerial', 'actionNet']),
     handleSerial() {
-      if (!this.comSelected || !this.baudRate) {
-        this.$Message.warning('请选择串口参数')
+      if (!this.comSelected || !this.baudRate || !this.packageTime) {
+        this.$Message.warning('请填写串口参数')
         return
       }
       this.actionSerial({
         port: this.comSelected,
-        baudRate: this.baudRate
+        baudRate: this.baudRate,
+        packageTime: this.packageTime
       })
     },
     handleNet() {
-      if (!this.netPort) {
-        this.$Message.warning('请选择网络参数')
+      if (
+        !this.hostIp ||
+        !this.hostPort ||
+        !this.serverIp ||
+        !this.serverPort
+      ) {
+        this.$Message.warning('请填写网络参数')
         return
       }
-      this.actionNet(this.netPort)
+      this.actionNet({
+        hostIp: this.hostIp,
+        hostPort: this.hostPort,
+        serverIp: this.serverIp,
+        serverPort: this.serverPort
+      })
     }
   }
 }

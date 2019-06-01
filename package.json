@@ -1,6 +1,6 @@
 {
-  "name": "net-delay",
-  "version": "1.0.1",
+  "name": "serial2udp",
+  "version": "0.0.1",
   "author": "microgram <maogang2014@126.com>",
   "description": "An electron-vue project",
   "license": "",
@@ -19,8 +19,8 @@
     "postinstall": "npm run lint:fix"
   },
   "build": {
-    "productName": "网络延时测试工具",
-    "appId": "com.mg.netDelay",
+    "productName": "串口转UDP工具",
+    "appId": "com.microgram.serial2udp",
     "directories": {
       "output": "build"
     },

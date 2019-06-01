@@ -6,20 +6,11 @@ const SerialPort = require('serialport')
 const net = require('net')
 const state = {
   windowSize: { height: window.innerHeight, width: window.innerWidth },
-  comName: [
-    'COM1',
-    'COM2',
-    'COM3',
-    'COM4',
-    'COM5',
-    'COM6',
-    'COM7',
-    'COM8',
-    'COM9',
-    'COM10'
-  ],
+  comNumber: 20,
   serialState: '未连接',
+  serialIsDisabled: false,
   netState: '未开启',
+  netIsDisabled: false,
   serialTime: '000000.00',
   netTime: '000000.00',
   averageDelay: 0,
@@ -34,9 +25,11 @@ const mutations = {
   },
   SERIAL_STATE(state, value) {
     state.serialState = value
+    state.serialIsDisabled = value !== '未连接'
   },
   NET_STATE(state, value) {
     state.netState = value
+    state.netIsDisabled = value !== '未开启'
   },
   SERIAL_TIME(state, value) {
     state.serialTime = value
@@ -153,9 +146,9 @@ const actions = {
           let splits = string.split(alldata, ',', 4)
           alldata = ''
           let utc
-          if (splits[0] === '$GPGGA' || splits[0] === '$GNGGA')
+          if (splits[0] === '$GPGGA' || splits[0] === '$GNGGA') {
             utc = Number(splits[1])
-          else if (splits[0] === '$YBCTCC') utc = Number(splits[3])
+          } else if (splits[0] === '$YBCTCC') utc = Number(splits[3])
           else return
           commit('NET_TIME', utc)
           // 每秒计算一次延迟，存储每秒延迟
