@@ -1,6 +1,6 @@
 {
   "name": "serial2udp",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "author": "microgram <maogang2014@126.com>",
   "description": "An electron-vue project",
   "license": "",
@@ -65,6 +65,7 @@
     "echarts": "^4.1.0",
     "iview": "^3.3.2",
     "lodash": "^4.17.11",
+    "moment": "^2.24.0",
     "serialport": "^7.1.4",
     "v-charts": "^1.19.0",
     "vue": "^2.5.16",

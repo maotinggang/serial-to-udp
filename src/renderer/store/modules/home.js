@@ -1,24 +1,23 @@
 import { EventBus } from '../../lib/event'
-import math from 'lodash/math'
-import string from 'lodash/string'
-import collection from 'lodash/collection'
+const dgram = require('dgram')
 const SerialPort = require('serialport')
-const net = require('net')
+const moment = require('moment')
 const state = {
   windowSize: { height: window.innerHeight, width: window.innerWidth },
   comNumber: 20,
   serialState: '未连接',
   serialIsDisabled: false,
+  packageTime: 50,
   netState: '未开启',
   netIsDisabled: false,
-  serialTime: '000000.00',
-  netTime: '000000.00',
-  averageDelay: 0,
-  serialDelay: [],
-  netDelay: [],
-  minuteDelay: []
+  infos: [],
+  displayState: '暂停'
 }
 
+let hex = true
+let ascii = false
+let timestamp = false
+let isDisplay = true
 const mutations = {
   WINDOW_SIZE(state, value) {
     state.windowSize = value
@@ -27,49 +26,66 @@ const mutations = {
     state.serialState = value
     state.serialIsDisabled = value !== '未连接'
   },
+  PACKAGE_TIME(state, value) {
+    state.packageTime = value
+  },
   NET_STATE(state, value) {
     state.netState = value
     state.netIsDisabled = value !== '未开启'
   },
-  SERIAL_TIME(state, value) {
-    state.serialTime = value
+  DISPLAY_STATE(state) {
+    isDisplay = !isDisplay
+    state.displayState = isDisplay ? '暂停' : '开启'
   },
-  NET_TIME(state, value) {
-    state.netTime = value
+  DISPLAY_CLEAR(state) {
+    state.infos = []
   },
-  AVERAGE_DELAY(state) {
-    state.minuteDelay = []
-    collection.forEach(state.netDelay, value => {
-      let temp = collection.find(state.serialDelay, ['utc', value.utc])
-      if (temp) state.minuteDelay.push(value.time - temp.time)
-    })
-    state.averageDelay = math.round(math.mean(state.minuteDelay))
-    state.serialDelay = []
-    state.netDelay = []
-  },
-  SERIAL_DELAY(state, value) {
-    if (state.serialDelay.length > 1000) {
-      state.serialDelay = []
+  DISPLAY_CONTENT(state, value) {
+    if (!isDisplay) return
+    if (state.infos.length > 1000) state.infos = []
+    let now = ''
+    if (timestamp) now = moment().format('YYYY-MM-DD HH:mm:ss.SSS')
+    if (hex) {
+      state.infos.unshift(
+        `${value.type}-Hex[${now}]:  ${value.data.toString('hex')}`
+      )
     }
-    state.serialDelay.push(value)
-  },
-  NET_DELAY(state, value) {
-    if (state.netDelay.length > 1000) {
-      state.netDelay = []
+    if (ascii) {
+      state.infos.unshift(
+        `${value.type}-Ascii[${now}]: ${value.data.toString()}`
+      )
     }
-    state.netDelay.push(value)
-  },
-  CLEAN_DELAY(state) {
-    state.serialDelay = []
-    state.netDelay = []
-    state.averageDelay = 0
   }
 }
 
-let port, server
+let port
+let socket
+let serverIp = '47.92.151.105'
+let serverPort = '8000'
 const actions = {
   actionWindowSize({ commit }, value) {
     commit('WINDOW_SIZE', value)
+  },
+  actionCheckedChange({ commit }, value) {
+    if (value[0] === 'hex' || value[1] === 'hex' || value[2] === 'hex') {
+      hex = true
+    } else hex = false
+    if (value[0] === 'ascii' || value[1] === 'ascii' || value[2] === 'ascii') {
+      ascii = true
+    } else ascii = false
+    if (
+      value[0] === 'timestamp' ||
+      value[1] === 'timestamp' ||
+      value[2] === 'timestamp'
+    ) {
+      timestamp = true
+    } else timestamp = false
+  },
+  actionDisplayPause({ commit }) {
+    commit('DISPLAY_STATE')
+  },
+  actionDisplayClear({ commit }) {
+    commit('DISPLAY_CLEAR')
   },
   actionSerial({ commit, state }, value) {
     if (state.serialState === '已连接') {
@@ -84,115 +100,66 @@ const actions = {
     port.on('error', err => {
       EventBus.$emit('message-box', '串口错误：' + err)
       port.close()
+      commit('SERIAL_STATE', '未连接')
     })
     port.open(err => {
-      if (err) {
-        EventBus.$emit('message-box', '打开串口失败：' + err)
-      } else {
-        commit('SERIAL_STATE', '已连接')
-        // 发送gpgga指令
-        port.write('log gpgga ontime 0.2\r\n', err => {
-          if (err) {
-            EventBus.$emit('message-box', '发送GPGGA指令失败：' + err)
-          }
-        })
-        let alldata = ''
-        port.on('data', data => {
-          data = data.toString()
-          // 拼包
-          if (data[0] === '$') {
-            alldata = data
-          } else if (alldata.length > 0) {
-            alldata += data
-          }
-          // 处理数据
-          if (alldata[0] === '$' && alldata.length > 16) {
-            // 解析gpgga
-            let splits = string.split(alldata, ',', 2)
-            alldata = ''
-            if (splits[0] === '$GPGGA' || splits[0] === '$GNGGA') {
-              let utc = Number(splits[1])
-              commit('SERIAL_TIME', utc)
-              if (utc % 1 === 0) {
-                // 获取系统时间，根据系统时间计算延时
-                let time = new Date()
-                commit('SERIAL_DELAY', { utc: utc, time: time.getTime() })
-              }
-            }
-          }
-        })
-      }
+      if (err) EventBus.$emit('message-box', '打开串口失败：' + err)
+      else commit('SERIAL_STATE', '已连接')
     })
+    // Read data that is available but keep the stream in "paused mode"
+    port.on('readable', () => {
+      setTimeout(() => {
+        let msg = port.read()
+        socket.send(msg, serverPort, serverIp, err => {
+          if (err) console.error(`socket-send:${err}`)
+          else commit('DISPLAY_CONTENT', { type: 'Send', data: msg })
+        })
+      }, value.packageTime)
+    })
+    // let allData
+    // port.on('data', data => {
+    //   if (!allData) {
+    //     allData = data
+    //     // 串口接收数据分段，延时等待接收完整后再进行处理
+    //     setTimeout(() => {
+    //       netData.push(allData)
+    //       allData = null
+    //     }, value.packageTime)
+    //   } else {
+    //     allData = Buffer.concat([allData, data])
+    //   }
+    // })
   },
   actionNet({ commit, state }, value) {
     if (state.netState === '已开启') {
-      server.close()
+      socket.close()
       commit('NET_STATE', '未开启')
       return
     }
-    server = net.createServer(socket => {
-      // 接收数据
-      let alldata = ''
-      socket.on('data', data => {
-        data = data.toString()
-        // 拼包
-        if (data[0] === '$') {
-          alldata = data
-        } else if (alldata.length > 0) {
-          alldata += data
-        }
-        // 解析YBCTCC或者GPGGA
-        if (alldata[0] === '$' && alldata.length > 24) {
-          let splits = string.split(alldata, ',', 4)
-          alldata = ''
-          let utc
-          if (splits[0] === '$GPGGA' || splits[0] === '$GNGGA') {
-            utc = Number(splits[1])
-          } else if (splits[0] === '$YBCTCC') utc = Number(splits[3])
-          else return
-          commit('NET_TIME', utc)
-          // 每秒计算一次延迟，存储每秒延迟
-          if (utc % 1 === 0) {
-            let time = new Date()
-            commit('NET_DELAY', {
-              utc: utc,
-              time: time.getTime()
-            })
-          }
-          // 每分开始时计算上一分钟平均延时
-          if (utc % 100 === 0) {
-            commit('AVERAGE_DELAY')
-          }
-        }
-      })
-
-      socket.on('error', err => {
-        if (err) {
-          EventBus.$emit('message-box', '网络错误：' + err)
-        }
-      })
-      // 连接断开
-      socket.on('close', err => {
-        EventBus.$emit(
-          'message-box',
-          '网络连接断开：' + err + ',' + socket.remoteAddress
-        )
-      })
-      // 连接超时
-      socket.setTimeout(10000, () => {
-        socket.end()
-      })
-    })
-    server.on('error', err => {
-      EventBus.$emit('message-box', '网络服务错误：' + err)
+    socket = dgram.createSocket('udp4')
+    serverIp = value.serverIp
+    serverPort = value.serverPort
+    socket.on('error', err => {
+      console.error(`socket:${err}`)
       commit('NET_STATE', '未开启')
+      socket.close()
     })
-    server.on('connection', socket => {
-      EventBus.$emit('message-box', '设备连接IP:' + socket.remoteAddress)
-      commit('CLEAN_DELAY')
+    socket.on('message', msg => {
+      if (!port.isOpen) return
+      port.write(msg, err => {
+        if (err) console.error(`port-write:${err}`)
+        else commit('DISPLAY_CONTENT', { type: 'Receive', data: msg })
+      })
     })
-    server.listen(value, () => {})
-    commit('NET_STATE', '已开启')
+    socket.bind(
+      {
+        address: value.hostIp,
+        port: value.hostPort
+      },
+      () => {
+        commit('NET_STATE', '已开启')
+      }
+    )
   }
 }
 

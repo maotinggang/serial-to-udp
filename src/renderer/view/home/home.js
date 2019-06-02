@@ -1,22 +1,18 @@
-import { DelayAverage, DelayStatistics } from '@/components/charts'
 import { mapState, mapActions } from 'vuex'
 import { EventBus } from '@/lib/event'
 
 export default {
   name: 'home',
-  components: {
-    DelayAverage,
-    DelayStatistics
-  },
   data() {
     return {
       comSelected: '',
       baudRate: 115200,
       packageTime: 100,
-      hostIp: '127.0.0.1',
+      hostIp: '192.168.99.116',
       hostPort: 8080,
-      serverIp: '127.0.0.1',
-      serverPort: 8080
+      serverIp: '47.92.151.105',
+      serverPort: 8000,
+      checkedDisplay: ['hex']
     }
   },
   created() {
@@ -49,13 +45,19 @@ export default {
       'serialIsDisabled',
       'netState',
       'netIsDisabled',
-      'serialTime',
-      'netTime',
-      'averageDelay'
+      'displayState',
+      'infos'
     ])
   },
   methods: {
-    ...mapActions('home', ['actionWindowSize', 'actionSerial', 'actionNet']),
+    ...mapActions('home', [
+      'actionCheckedChange',
+      'actionDisplayPause',
+      'actionDisplayClear',
+      'actionWindowSize',
+      'actionSerial',
+      'actionNet'
+    ]),
     handleSerial() {
       if (!this.comSelected || !this.baudRate || !this.packageTime) {
         this.$Message.warning('请填写串口参数')
@@ -64,7 +66,7 @@ export default {
       this.actionSerial({
         port: this.comSelected,
         baudRate: this.baudRate,
-        packageTime: this.packageTime
+        packageTime: this.packageTime < 50 ? 50 : this.packageTime
       })
     },
     handleNet() {
@@ -83,6 +85,15 @@ export default {
         serverIp: this.serverIp,
         serverPort: this.serverPort
       })
+    },
+    checkedChange(value) {
+      this.actionCheckedChange(value)
+    },
+    displayPause() {
+      this.actionDisplayPause()
+    },
+    displayClear() {
+      this.actionDisplayClear()
     }
   }
 }

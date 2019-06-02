@@ -35,20 +35,30 @@
         <Button type="primary" style=" margin-left: 10px;" @click="handleNet">{{netState}}</Button>
       </Col>
     </Row>
-    <Row style="text-align: center;">
-      <Col span="12">
-        <Card :padding="0">
-          <p slot="title" :padding="0">
-            <Button type="primary" size="small">暂停</Button>
-          </p>
-          <delay-average :height="windowSize.height - 170 + 'px'"></delay-average>
-        </Card>
+    <Row class="home-row">
+      <Col style="height: 30px;">
+        <span style="float: left; margin-left: 10px;margin-top: 5px;">
+          <CheckboxGroup
+            v-model="checkedDisplay"
+            @on-change="checkedChange"
+            style=" display: inline;"
+          >
+            <Checkbox label="hex">Hex</Checkbox>
+            <Checkbox label="ascii">Ascii</Checkbox>
+            <Checkbox label="timestamp">Timestamp</Checkbox>
+          </CheckboxGroup>
+        </span>
+        <span style=" float: right; margin-right: 10px;">
+          <Button type="success" @click="displayPause">{{displayState}}</Button>
+          <Button style="margin-left: 10px;" type="warning" @click="displayClear">清空</Button>
+        </span>
       </Col>
-      <Col span="12">
-        <Card :padding="2">
-          <p slot="title">延时统计(ms)</p>
-          <delay-statistics :height="windowSize.height - 170 + 'px'"></delay-statistics>
-        </Card>
+    </Row>
+    <Row style=" position: fixed;">
+      <Col
+        :style="{padding:'5px',overflow: 'auto',height:windowSize.height-130+'px',width:windowSize.width+'px'}"
+      >
+        <p style="font-size: 15px;" v-for="item in infos" :key="item.id">{{ item }}</p>
       </Col>
     </Row>
   </div>
