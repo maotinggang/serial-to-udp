@@ -23,13 +23,25 @@
       <Col>
         <span>
           本地地址：
-          <Input :disabled="netIsDisabled" v-model="hostIp" style="width: 120px"/>：
+          <AutoComplete
+            :disabled="netIsDisabled"
+            v-model="hostIp"
+            :data="hostIps"
+            placeholder="host"
+            style="width:120px"
+          ></AutoComplete>：
           <Input :disabled="netIsDisabled" v-model="hostPort" style="width: 60px"/>
         </span>
         <Divider type="vertical"/>
         <span>
           服务器地址：
-          <Input :disabled="netIsDisabled" v-model="serverIp" style="width: 120px"/>：
+          <AutoComplete
+            :disabled="netIsDisabled"
+            v-model="serverIp"
+            :data="hostIps"
+            placeholder="server"
+            style="width:120px"
+          ></AutoComplete>：
           <Input :disabled="netIsDisabled" v-model="serverPort" style="width: 60px"/>
         </span>
         <Button type="primary" style=" margin-left: 10px;" @click="handleNet">{{netState}}</Button>
@@ -56,7 +68,7 @@
     </Row>
     <Row style=" position: fixed;">
       <Col
-        :style="{padding:'5px',overflow: 'auto',height:windowSize.height-130+'px',width:windowSize.width+'px'}"
+        :style="{wordWrap: 'break-word',wordBreak: 'break-all',padding:'5px',overflow: 'auto',height:windowSize.height-130+'px',width:windowSize.width+'px'}"
       >
         <p style="font-size: 15px;" v-for="item in infos" :key="item.id">{{ item }}</p>
       </Col>

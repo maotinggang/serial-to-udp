@@ -4,7 +4,7 @@ const SerialPort = require('serialport')
 const moment = require('moment')
 const state = {
   windowSize: { height: window.innerHeight, width: window.innerWidth },
-  comNumber: 20,
+  comNumber: 30,
   serialState: '未连接',
   serialIsDisabled: false,
   packageTime: 50,

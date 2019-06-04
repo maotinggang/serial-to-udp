@@ -1,14 +1,16 @@
 import { mapState, mapActions } from 'vuex'
 import { EventBus } from '@/lib/event'
-
+const collection = require('lodash/collection')
+const os = require('os')
 export default {
   name: 'home',
   data() {
     return {
       comSelected: '',
       baudRate: 115200,
-      packageTime: 100,
-      hostIp: '192.168.99.116',
+      packageTime: 50,
+      hostIp: '127.0.0.1',
+      hostIps: [],
       hostPort: 8080,
       serverIp: '47.92.151.105',
       serverPort: 8000,
@@ -16,6 +18,12 @@ export default {
     }
   },
   created() {
+    // 读取设备ip
+    let netParams = os.networkInterfaces()
+    collection.forEach(netParams, value => {
+      let temp = collection.filter(value, { family: 'IPv4' })
+      if (temp[0].address) this.hostIps.push(temp[0].address)
+    })
     // 监听错误事件
     EventBus.$on('message-box', value => {
       this.$Message.warning({
