@@ -17,6 +17,15 @@ export default {
       checkedDisplay: ['hex']
     }
   },
+  watch: {
+    // 使用箭头函数时this无法识别
+    infosChange: function() {
+      this.$nextTick(() => {
+        let infosArea = document.getElementById('infos-display')
+        infosArea.scrollTop = infosArea.scrollHeight
+      })
+    }
+  },
   created() {
     // 读取设备ip
     let netParams = os.networkInterfaces()
@@ -55,7 +64,10 @@ export default {
       'netIsDisabled',
       'displayState',
       'infos'
-    ])
+    ]),
+    infosChange() {
+      return this.infos
+    }
   },
   methods: {
     ...mapActions('home', [

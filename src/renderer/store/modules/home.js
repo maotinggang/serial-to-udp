@@ -46,14 +46,12 @@ const mutations = {
     let now = ''
     if (timestamp) now = moment().format('YYYY-MM-DD HH:mm:ss.SSS')
     if (hex) {
-      state.infos.unshift(
+      state.infos.push(
         `${value.type}-Hex[${now}]:  ${value.data.toString('hex')}`
       )
     }
     if (ascii) {
-      state.infos.unshift(
-        `${value.type}-Ascii[${now}]: ${value.data.toString()}`
-      )
+      state.infos.push(`${value.type}-Ascii[${now}]: ${value.data.toString()}`)
     }
   }
 }
@@ -110,29 +108,19 @@ const actions = {
     port.on('readable', () => {
       setTimeout(() => {
         let msg = port.read()
-        socket.send(msg, serverPort, serverIp, err => {
-          if (err) console.error(`socket-send:${err}`)
-          else commit('DISPLAY_CONTENT', { type: 'Send', data: msg })
-        })
+        if (socket) {
+          socket.send(msg, serverPort, serverIp, err => {
+            if (err) console.error(`socket-send:${err}`)
+            else commit('DISPLAY_CONTENT', { type: 'Send', data: msg })
+          })
+        }
       }, value.packageTime)
     })
-    // let allData
-    // port.on('data', data => {
-    //   if (!allData) {
-    //     allData = data
-    //     // 串口接收数据分段，延时等待接收完整后再进行处理
-    //     setTimeout(() => {
-    //       netData.push(allData)
-    //       allData = null
-    //     }, value.packageTime)
-    //   } else {
-    //     allData = Buffer.concat([allData, data])
-    //   }
-    // })
   },
   actionNet({ commit, state }, value) {
     if (state.netState === '已开启') {
       socket.close()
+      socket = null
       commit('NET_STATE', '未开启')
       return
     }
