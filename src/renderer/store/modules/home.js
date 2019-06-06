@@ -8,6 +8,7 @@ const state = {
   serialState: '未连接',
   serialIsDisabled: false,
   packageTime: 50,
+  serialBaudrate: 9600,
   netState: '未开启',
   netIsDisabled: false,
   infos: [],
@@ -28,6 +29,9 @@ const mutations = {
   },
   PACKAGE_TIME(state, value) {
     state.packageTime = value
+  },
+  SERIAL_BAUDRATE(state, value) {
+    state.serialBaudrate = value
   },
   NET_STATE(state, value) {
     state.netState = value
@@ -91,6 +95,7 @@ const actions = {
       commit('SERIAL_STATE', '未连接')
       return
     }
+    commit('SERIAL_BAUDRATE', value.baudRate)
     port = new SerialPort(value.port, {
       baudRate: value.baudRate,
       autoOpen: false
